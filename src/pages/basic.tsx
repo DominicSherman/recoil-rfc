@@ -1,4 +1,5 @@
-import {
+import React, {
+  ChangeEventHandler,
   SetStateAction,
   useState,
 } from 'react';
@@ -16,12 +17,7 @@ export default function Basic() {
   const [search, debouncedSearch, onChange] = useInputDebouncing();
   const [selectedGender, setSelectedGender] = useState<Gender | null>(null)
   const [selectedStatus, setSelectedStatus] = useState<Status | null>(null)
-  const genderOptions: Gender[] = [
-    'Female', 'Male', 'Genderless', 'unknown'
-  ];
-  const statusOptions: Status[] = [
-    'Alive', 'Dead', 'unknown'
-  ];
+  
   const {queryResponse, contentCount, page, setPage} = usePaginatedQuery<Character>(['character'], {
     params: {
       name: debouncedSearch,
@@ -33,28 +29,53 @@ export default function Basic() {
   return (
     <div className="flex flex-col w-screen items-center py-8">
       <h2 className="text-xl font-bold underline">Recoil Example</h2>
-      <div className="my-2 relative rounded-md shadow-sm">
-        <input type="text" className="focus:ring-indigo-500 focus:border-indigo-500 block w-[200px] pl-7 pr-12 sm:text-sm border border-gray-300 rounded-md" placeholder="Search for a name..." onChange={onChange} value={search} />
-      </div>
+      <SearchBar onChange={onChange} search={search} />
       <div className="my-2">{`Result count: ${contentCount}`}</div>
       <Pagination page={page} setPage={setPage} contentCount={contentCount} />
-      <div className="flex flex-row space-x-8">
-        <Select 
-          placeholder="Gender"
-          options={genderOptions.map((opt) => ({value: opt, label: opt}))}
-          onChange={(gender) => setSelectedGender(gender?.value || null)}
-        />
-        <Select 
-          placeholder="Status"
-          options={statusOptions.map((opt) => ({value: opt, label: opt}))}
-          onChange={(status) => setSelectedStatus(status?.value || null)}
-        />
-      </div>
+      <FilterOptions setSelectedGender={setSelectedGender} setSelectedStatus={setSelectedStatus} />
       <div className="flex flex-col space-y-2 pt-2">
         <CharacterResults data={queryResponse.data} isError={queryResponse.isError} />
       </div>
     </div>
   )
+}
+
+const SearchBar = ({onChange, search}: {onChange: ChangeEventHandler<any>, search: string}) => {
+  return (
+    <div className="my-2 relative rounded-md shadow-sm">
+      <input type="text" className="focus:ring-indigo-500 focus:border-indigo-500 block w-[200px] pl-7 pr-12 sm:text-sm border border-gray-300 rounded-md" placeholder="Search for a name..." onChange={onChange} value={search} />
+    </div>
+  );
+};
+
+const FilterOptions = ({
+  setSelectedGender,
+  setSelectedStatus
+}: {
+  setSelectedGender: React.Dispatch<React.SetStateAction<Gender | null>>;
+  setSelectedStatus: React.Dispatch<React.SetStateAction<Status | null>>;
+}) => {
+  const genderOptions: Gender[] = [
+    'Female', 'Male', 'Genderless', 'unknown'
+  ];
+  const statusOptions: Status[] = [
+    'Alive', 'Dead', 'unknown'
+  ];
+
+  return (
+    <div className="flex flex-row space-x-8">
+      <Select 
+        placeholder="Gender"
+        options={genderOptions.map((opt) => ({value: opt, label: opt}))}
+        onChange={(gender) => setSelectedGender(gender?.value || null)}
+      />
+      <Select 
+        placeholder="Status"
+        options={statusOptions.map((opt) => ({value: opt, label: opt}))}
+        onChange={(status) => setSelectedStatus(status?.value || null)}
+      />
+    </div>
+  );
 }
 
 const CharacterResults = ({data, isError}: {data?: Character[], isError: boolean}) => {
