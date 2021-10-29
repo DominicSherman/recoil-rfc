@@ -15,36 +15,6 @@ import {
 import { useInputDebouncing } from '../useInputDebouncing';
 import { usePaginatedQuery } from '../usePaginatedQueryRecoil';
 
-const selectedGenderState = atom<Gender | null>({
-  key: "selectedGenderFilter",
-  default: null
-});
-
-const selectedStatusState = atom<Status | null>({
-  key: "selectedStatusFilter",
-  default: null
-})
-
-const debouncedSearchbarInputState = atom<string>({
-  key: "debouncedSearchbarInput",
-  default: ""
-});
-
-const useCharacterData = () => {
-  const selectedGender = useRecoilValue(selectedGenderState);
-  const selectedStatus = useRecoilValue(selectedStatusState);
-  const debouncedSearch = useRecoilValue(debouncedSearchbarInputState);
-
-  return usePaginatedQuery<Character>(['character'], {
-    params: {
-      name: debouncedSearch,
-      gender: selectedGender,
-      status: selectedStatus
-    },
-    pageKey: "recoilPage"
-  });
-}
-
 export default function Recoil() {
   return (
     <div className="flex flex-col w-screen items-center py-8">
@@ -179,4 +149,34 @@ const Pagination = () => {
       <div className="cursor-pointer" onClick={onClickNext}>Next</div>
     </div>
   )
+}
+
+const selectedGenderState = atom<Gender | null>({
+  key: "selectedGenderFilter",
+  default: null
+});
+
+const selectedStatusState = atom<Status | null>({
+  key: "selectedStatusFilter",
+  default: null
+})
+
+const debouncedSearchbarInputState = atom<string>({
+  key: "debouncedSearchbarInput",
+  default: ""
+});
+
+const useCharacterData = () => {
+  const selectedGender = useRecoilValue(selectedGenderState);
+  const selectedStatus = useRecoilValue(selectedStatusState);
+  const debouncedSearch = useRecoilValue(debouncedSearchbarInputState);
+
+  return usePaginatedQuery<Character>(['character'], {
+    params: {
+      name: debouncedSearch,
+      gender: selectedGender,
+      status: selectedStatus
+    },
+    pageKey: "recoilPage"
+  });
 }

@@ -30,7 +30,7 @@ export default function Basic() {
     <div className="flex flex-col w-screen items-center py-8">
       <h2 className="text-xl font-bold underline">Recoil Example</h2>
       <SearchBar onChange={onChange} search={search} />
-      <div className="my-2">{`Result count: ${contentCount}`}</div>
+      <ResultCount contentCount={contentCount} />
       <Pagination page={page} setPage={setPage} contentCount={contentCount} />
       <FilterOptions setSelectedGender={setSelectedGender} setSelectedStatus={setSelectedStatus} />
       <div className="flex flex-col space-y-2 pt-2">
@@ -47,6 +47,8 @@ const SearchBar = ({onChange, search}: {onChange: ChangeEventHandler<any>, searc
     </div>
   );
 };
+
+const ResultCount = ({contentCount}: {contentCount: number}) => <div className="my-2">{`Result count: ${contentCount}`}</div>;
 
 const FilterOptions = ({
   setSelectedGender,
