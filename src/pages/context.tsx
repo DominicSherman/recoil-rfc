@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { FC, useContext, useEffect, useState } from 'react';
+import {UseQueryResult} from 'react-query';
 import Select from 'react-select';
 import {
   atom,
@@ -12,33 +13,79 @@ import {
   Status,
 } from '../../types';
 import { useInputDebouncing } from '../useInputDebouncing';
-import { usePaginatedQuery } from '../usePaginatedQueryRecoil';
+import { usePaginatedQuery } from '../usePaginatedQuery';
 
-export default function Recoil() {
+const PageContext = React.createContext<{
+  selectedGender: Gender | null;
+  setSelectedGender: React.Dispatch<React.SetStateAction<Gender | null>>;
+  selectedStatus: Status | null;
+  setSelectedStatus: React.Dispatch<React.SetStateAction<Status | null>>;
+  search: string;
+  debouncedSearch: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  queryResponse: UseQueryResult<Character[]> | null;
+  contentCount: number;
+  page: number;
+  setPage: React.Dispatch<React.SetStateAction<number>>;
+}>({
+  selectedGender: null,
+  setSelectedGender: () => ({}),
+  selectedStatus: null,
+  setSelectedStatus: () => ({}),
+  search: '',
+  debouncedSearch: '',
+  onChange: () => ({}),
+  queryResponse: null,
+  contentCount: 0,
+  page: 1,
+  setPage: () => ({}),
+});
+
+
+export default function Context() {
+  const [selectedGender, setSelectedGender] = useState<Gender | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<Status | null>(null);
+  const [search, debouncedSearch, onChange] = useInputDebouncing();
+  const {queryResponse, contentCount, page, setPage} = usePaginatedQuery<Character>(['character'], {
+    params: {
+      name: debouncedSearch,
+      gender: selectedGender,
+      status: selectedStatus
+    },
+  });
+
+  const value = {
+    selectedGender,
+    setSelectedGender,
+    selectedStatus,
+    setSelectedStatus,
+    search,
+    debouncedSearch,
+    onChange,
+    queryResponse,
+    contentCount,
+    page,
+    setPage
+  };
+
   return (
-    <div className="flex flex-col w-screen items-center py-8">
-      <h2 className="text-xl font-bold underline">Recoil Example</h2>
-      <SearchBar />
-      <ResultCount />
-      <Pagination />
-      <FilterOptions />
-      <div className="flex flex-col space-y-2 pt-2">
-        <CharacterResults />
+    <PageContext.Provider value={value}>
+      <div className="flex flex-col w-screen items-center py-8">
+        <h2 className="text-xl font-bold underline">Context Example</h2>
+        <SearchBar />
+        <ResultCount />
+        <Pagination />
+        <FilterOptions />
+        <div className="flex flex-col space-y-2 pt-2">
+          <CharacterResults />
+        </div>
       </div>
-    </div>
+    </PageContext.Provider>
   )
 }
 
 const SearchBar = () => {
-  const [search, debouncedSearch, onChange] = useInputDebouncing();
-  const setDebouncedSearchbarInput = useSetRecoilState(
-    debouncedSearchbarInputState
-  );
-
-    /** Keep debounced searchbar input in sync with the recoil atom */
-  useEffect(() => {
-    setDebouncedSearchbarInput(() => debouncedSearch);
-  }, [debouncedSearch, setDebouncedSearchbarInput]);
+  const {search, onChange} = useContext(PageContext);
 
   return (
     <div className="my-2 relative rounded-md shadow-sm">
@@ -48,7 +95,7 @@ const SearchBar = () => {
 };
 
 const ResultCount = () => {
-  const {contentCount} = useCharacterData();
+  const {contentCount} = useContext(PageContext);
 
   return (
     <div className="my-2">{`Result count: ${contentCount}`}</div>
@@ -62,27 +109,32 @@ const FilterOptions = () => {
   const statusOptions: Status[] = [
     'Alive', 'Dead', 'unknown'
   ];
-  const setSelectedGender = useSetRecoilState(selectedGenderState);
-  const setSelectedStatus = useSetRecoilState(selectedStatusState);
+  const {setSelectedGender, setSelectedStatus} = useContext(PageContext);
 
   return (
     <div className="flex flex-row space-x-8">
       <Select 
         placeholder="Gender"
         options={genderOptions.map((opt) => ({value: opt, label: opt}))}
-        onChange={(gender) => setSelectedGender(() => gender?.value || null)}
+        onChange={(gender) => setSelectedGender(gender?.value || null)}
       />
       <Select 
         placeholder="Status"
         options={statusOptions.map((opt) => ({value: opt, label: opt}))}
-        onChange={(status) => setSelectedStatus(() => status?.value || null)}
+        onChange={(status) => setSelectedStatus(status?.value || null)}
       />
     </div>
   );
 }
 
 const CharacterResults = () => {
-  const {queryResponse: {data, isError}} = useCharacterData();
+  const {queryResponse} = useContext(PageContext);
+  
+  if (!queryResponse) {
+    return null;
+  }
+
+  const {isError, data} = queryResponse;
 
   if (isError) {
     return <p>Something went wrong, please try again...</p>;
@@ -128,7 +180,7 @@ const Pagination = () => {
     page, 
     setPage, 
     contentCount
-  } = useCharacterData();
+  } = useContext(PageContext);
 
   const onClickPrevious = () => {
     if (page > 1) {
@@ -148,34 +200,4 @@ const Pagination = () => {
       <div className="cursor-pointer" onClick={onClickNext}>Next</div>
     </div>
   )
-}
-
-const selectedGenderState = atom<Gender | null>({
-  key: "selectedGenderFilter",
-  default: null
-});
-
-const selectedStatusState = atom<Status | null>({
-  key: "selectedStatusFilter",
-  default: null
-})
-
-const debouncedSearchbarInputState = atom<string>({
-  key: "debouncedSearchbarInput",
-  default: ""
-});
-
-const useCharacterData = () => {
-  const selectedGender = useRecoilValue(selectedGenderState);
-  const selectedStatus = useRecoilValue(selectedStatusState);
-  const debouncedSearch = useRecoilValue(debouncedSearchbarInputState);
-
-  return usePaginatedQuery<Character>(['character'], {
-    params: {
-      name: debouncedSearch,
-      gender: selectedGender,
-      status: selectedStatus
-    },
-    pageKey: "recoilPage"
-  });
 }
